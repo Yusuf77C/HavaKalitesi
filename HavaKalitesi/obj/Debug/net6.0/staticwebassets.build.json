@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "bEma7JffsGdwykrJ/PEfIPnp4aXepgKqjjeaf0nYNlY=",
+  "Source": "AirQualityMonitor",
+  "BasePath": "_content/AirQualityMonitor",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "AirQualityMonitor\\wwwroot",
+      "Source": "AirQualityMonitor",
+      "ContentRoot": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\wwwroot\\",
+      "BasePath": "_content/AirQualityMonitor",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\wwwroot\\index.html",
+      "SourceId": "AirQualityMonitor",
+      "SourceType": "Discovered",
+      "ContentRoot": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\wwwroot\\",
+      "BasePath": "_content/AirQualityMonitor",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    }
+  ]
+}
