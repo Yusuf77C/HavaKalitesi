@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye Hava Kalitesi Haritası</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Font Awesome ekle -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Leaflet.draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .info-box {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            text-align: center;
+            min-width: 150px;
+        }
+        .info-box h4 {
+            margin: 0 0 10px;
+            color: #333;
+            font-size: 18px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .info-box .aqi-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #2c3e50;
+        }
+        .detail-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        .detail-button:hover {
+            background-color: #2980b9;
+        }
+        .aqi-low { background-color: #00e400; }
+        .aqi-moderate { background-color: #ffff00; }
+        .aqi-unhealthy-sensitive { background-color: #ff7e00; }
+        .aqi-unhealthy { background-color: #ff0000; }
+        .aqi-very-unhealthy { background-color: #8f3f97; }
+        .aqi-hazardous { background-color: #7e0023; }
+        
+        .custom-pin {
+            color: #e74c3c;  /* kırmızımsı renk */
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            min-width: 300px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            margin: 15px 0;
+            font-size: 18px;
+        }
+
+        .detail-label {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .close-button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        .close-button:hover {
+            background-color: #c0392b;
+        }
+
+        .search-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: 300px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 16px;
+            outline: none;
+            transition: box-shadow 0.3s;
+        }
+
+        .search-box:focus {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f6fa;
+        }
+
+        .area-info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .area-info h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .area-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <input type="text" 
+               class="search-box" 
+               placeholder="Şehir ara..." 
+               oninput="searchCity(this.value)"
+               onkeypress="handleKeyPress(event)">
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Leaflet.draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalCityName"></h2>
+            </div>
+            <div class="modal-body">
+                <div class="detail-item">
+                    <div class="detail-label">AQI Değeri</div>
+                    <div id="modalAqi" class="detail-value"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Ana Kirletici</div>
+                    <div id="modalPollutant" class="detail-value"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Ölçüm Zamanı</div>
+                    <div id="modalTime" class="detail-value"></div>
+                </div>
+            </div>
+            <button class="close-button" onclick="closeModal()">Kapat</button>
+        </div>
+    </div>
+
+    <div id="areaInfo" class="area-info" style="display: none;">
+        <h4>Seçili Alan AQI Ortalaması</h4>
+        <div id="averageAqi" class="area-value">-</div>
+    </div>
+
+    <script>
+        // Harita başlatma
+        const map = L.map('map').setView([39.0, 35.0], 6);
+        
+        // OpenStreetMap katmanı ekleme
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // AQI renk sınıfı belirleme
+        function getAQIColor(aqi) {
+            if (aqi <= 50) return 'aqi-low';
+            if (aqi <= 100) return 'aqi-moderate';
+            if (aqi <= 150) return 'aqi-unhealthy-sensitive';
+            if (aqi <= 200) return 'aqi-unhealthy';
+            if (aqi <= 300) return 'aqi-very-unhealthy';
+            return 'aqi-hazardous';
+        }
+
+        // AQI'ye göre pin rengini belirleme fonksiyonu
+        function getPinColor(aqi) {
+            if (aqi <= 50) return '#00e400';      // Yeşil
+            if (aqi <= 100) return '#ffff00';     // Sarı
+            if (aqi <= 150) return '#ff7e00';     // Turuncu
+            if (aqi <= 200) return '#ff0000';     // Kırmızı
+            if (aqi <= 300) return '#8f3f97';     // Mor
+            return '#7e0023';                     // Kahverengi
+        }
+
+        let cityData = {}; // Şehir verilerini saklamak için global değişken
+
+        // Verileri çekme ve işaretçileri ekleme
+        async function loadAirQualityData() {
+            try {
+                const response = await fetch('/api/AirQuality');
+                const data = await response.json();
+                
+                data.forEach(city => {
+                    cityData[city.city] = city;
+                    
+                    const pinIcon = L.divIcon({
+                        html: `<i class="fas fa-map-marker-alt" style="color: ${getPinColor(city.aqi)}"></i>`,
+                        className: 'custom-pin',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 30],
+                        popupAnchor: [0, -30]
+                    });
+
+                    const marker = L.marker([city.latitude, city.longitude], {
+                        icon: pinIcon
+                    });
+                    
+                    // Marker'a AQI değerini ekle
+                    marker.aqiValue = city.aqi;
+
+                    const popupContent = `
+                        <div class="info-box">
+                            <h4>${city.city.toUpperCase()}</h4>
+                            <div class="aqi-value">AQI: ${city.aqi}</div>
+                            <button class="detail-button" onclick="showDetails('${city.city}')">Detay</button>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                    marker.addTo(map);
+                    
+                    // Marker'ı array'e ekle
+                    allMarkers.push(marker);
+                    console.log(allMarkers,"1")
+                });
+            } catch (error) {
+                console.error('Veri yüklenirken hata oluştu:', error);
+            }
+        }
+
+        // Detay butonu için fonksiyon (şimdilik sadece konsola yazdıracak)
+        function showDetails(cityName) {
+            const city = cityData[cityName];
+            console.log(city)
+            if (!city) return;
+
+            document.getElementById('modalCityName').textContent = cityName.toUpperCase();
+            document.getElementById('modalAqi').textContent = city.aqi;
+            document.getElementById('modalPollutant').textContent = city.dominantPollutant;
+            document.getElementById('modalTime').textContent = new Date(city.timestamp).toLocaleString('tr-TR');
+            
+            document.getElementById('detailModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        // Modal dışına tıklandığında kapatma
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Arama fonksiyonu
+        function searchCity(query) {
+            const searchResults = document.getElementById('searchResults');
+            
+            if (!query) {
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            // Türkçe karakterleri de dikkate alarak arama yap
+            const turkishToLower = str => str.toLowerCase()
+                .replace('İ', 'i')
+                .replace('I', 'ı')
+                .replace('Ğ', 'ğ')
+                .replace('Ü', 'ü')
+                .replace('Ş', 'ş')
+                .replace('Ö', 'ö')
+                .replace('Ç', 'ç');
+
+            const results = Object.keys(cityData)
+                .filter(cityName => 
+                    turkishToLower(cityName).includes(turkishToLower(query))
+                );
+
+            if (results.length > 0) {
+                searchResults.innerHTML = results
+                    .map(cityName => `
+                        <div class="search-result-item" 
+                             onclick="selectCity('${cityName}')">
+                            ${cityName.toUpperCase()}
+                        </div>
+                    `).join('');
+                searchResults.style.display = 'block';
+            } else {
+                searchResults.innerHTML = `
+                    <div class="search-result-item">
+                        Sonuç bulunamadı
+                    </div>`;
+                searchResults.style.display = 'block';
+            }
+        }
+
+        // Şehir seçildiğinde
+        function selectCity(cityName) {
+            document.getElementById('searchResults').style.display = 'none';
+            showDetails(cityName);
+        }
+
+        // Enter tuşuna basıldığında ilk sonucu seç
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                const searchBox = event.target;
+                const query = searchBox.value.trim().toLowerCase();
+                
+                // Tam eşleşme ara
+                const exactMatch = Object.keys(cityData).find(cityName => 
+                    cityName.toLowerCase() === query
+                );
+                
+                if (exactMatch) {
+                    // Tam eşleşme varsa direkt o şehri göster
+                    selectCity(exactMatch);
+                    searchBox.value = ''; // Arama kutusunu temizle
+                } else {
+                    // Tam eşleşme yoksa, ilk sonucu kontrol et
+                    const results = document.getElementsByClassName('search-result-item');
+                    if (results.length > 0 && results[0].textContent !== 'Sonuç bulunamadı') {
+                        const firstCity = results[0].textContent.trim();
+                        selectCity(firstCity);
+                        searchBox.value = ''; // Arama kutusunu temizle
+                    }
+                }
+            }
+        }
+
+        // Sayfa herhangi bir yerine tıklandığında sonuçları gizle
+        document.addEventListener('click', function(event) {
+            const searchContainer = document.querySelector('.search-container');
+            const searchResults = document.getElementById('searchResults');
+            
+            if (!searchContainer.contains(event.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        // Çizim araçlarını oluştur
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        var drawControl = new L.Control.Draw({
+            draw: {
+                marker: false,
+                circle: false,
+                circlemarker: false,
+                polyline: false,
+                polygon: false,
+                rectangle: {
+                    shapeOptions: {
+                        color: '#3498db'
+                    }
+                }
+            },
+            edit: {
+                featureGroup: drawnItems
+            }
+        });
+        map.addControl(drawControl);
+
+        // Tüm marker'ları saklayacak array
+        let allMarkers = [];
+
+        // Çizim tamamlandığında çalışacak fonksiyon
+        map.on('draw:created', function(e) {
+            // Önceki çizimleri temizle
+            drawnItems.clearLayers();
+            
+            var layer = e.layer;
+            drawnItems.addLayer(layer);
+            console.log(allMarkers)
+            
+            // Seçili alan içindeki marker'ları bul
+            let markersInArea = allMarkers.filter(marker => {
+                return layer.getBounds().contains(marker.getLatLng());
+            });
+
+            console.log(markersInArea)
+            
+            // AQI ortalamasını hesapla
+            if (markersInArea.length > 0) {
+                let totalAqi = markersInArea.reduce((sum, marker) => sum + marker.aqiValue, 0);
+                let averageAqi = Math.round(totalAqi / markersInArea.length);
+                
+                // Sonucu göster
+                document.getElementById('areaInfo').style.display = 'block';
+                document.getElementById('averageAqi').textContent = `${averageAqi} (${markersInArea.length} şehir)`;
+            } else {
+                document.getElementById('areaInfo').style.display = 'block';
+                document.getElementById('averageAqi').textContent = 'Seçili alanda şehir yok';
+            }
+        });
+
+        // Çizim silindiğinde çalışacak fonksiyon
+        map.on('draw:deleted', function() {
+            document.getElementById('areaInfo').style.display = 'none';
+        });
+
+        // Verileri yükle (sadece bir kere)
+        loadAirQualityData();
+    </script>
+</body>
+</html> 
