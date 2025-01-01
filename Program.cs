@@ -92,7 +92,19 @@ static async Task SaveToDatabase(string connString, string city, JsonElement dat
         var dominantPoll = dataObj.TryGetProperty("dominentpol", out var pollElement) ? 
             pollElement.GetString() ?? "Unknown" : "Unknown";
         
-        Console.WriteLine($"AQI: {aqi}, Dominant Pollutant: {dominantPoll}");
+        // Sıcaklık verisini çek
+        float temperature = 0f;
+        if (dataObj.TryGetProperty("iaqi", out var iaqi))
+        {
+            if (iaqi.TryGetProperty("t", out var temp))
+            {
+                if (temp.TryGetProperty("v", out var tempValue))
+                {
+                    temperature = (float)tempValue.GetDouble();
+                    Console.WriteLine($"Temperature for {city}: {temperature}°C");
+                }
+            }
+        }
 
         double latitude = 0, longitude = 0;
         if (dataObj.TryGetProperty("city", out var cityElement) && 
@@ -121,7 +133,8 @@ static async Task SaveToDatabase(string connString, string city, JsonElement dat
                 aqi, 
                 dominant_pollutant, 
                 latitude, 
-                longitude, 
+                longitude,
+                temperature, 
                 timestamp
             )
             VALUES (
@@ -129,7 +142,8 @@ static async Task SaveToDatabase(string connString, string city, JsonElement dat
                 @aqi, 
                 @dominant_pollutant, 
                 @latitude, 
-                @longitude, 
+                @longitude,
+                @temperature, 
                 @timestamp
             )";
         
@@ -138,6 +152,7 @@ static async Task SaveToDatabase(string connString, string city, JsonElement dat
         cmd.Parameters.AddWithValue("dominant_pollutant", (object)dominantPoll ?? DBNull.Value);
         cmd.Parameters.AddWithValue("latitude", latitude);
         cmd.Parameters.AddWithValue("longitude", longitude);
+        cmd.Parameters.AddWithValue("temperature", temperature);
         cmd.Parameters.AddWithValue("timestamp", timestamp);
 
         await cmd.ExecuteNonQueryAsync();

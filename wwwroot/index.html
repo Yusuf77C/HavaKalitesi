@@ -207,6 +207,44 @@
             font-weight: bold;
             color: #2c3e50;
         }
+
+        .color-scale {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 600px;
+        }
+
+        .scale-gradient {
+            display: flex;
+            height: 40px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .scale-segment {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .scale-text {
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.2;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -237,6 +275,10 @@
                     <div id="modalAqi" class="detail-value"></div>
                 </div>
                 <div class="detail-item">
+                    <div class="detail-label">Sıcaklık</div>
+                    <div id="modalTemp" class="detail-value"></div>
+                </div>
+                <div class="detail-item">
                     <div class="detail-label">Ana Kirletici</div>
                     <div id="modalPollutant" class="detail-value"></div>
                 </div>
@@ -252,6 +294,30 @@
     <div id="areaInfo" class="area-info" style="display: none;">
         <h4>Seçili Alan AQI Ortalaması</h4>
         <div id="averageAqi" class="area-value">-</div>
+    </div>
+
+    <!-- Renk skalası -->
+    <div class="color-scale">
+        <div class="scale-gradient">
+            <div class="scale-segment" style="background-color: #00e400;">
+                <div class="scale-text">0-50<br>İyi</div>
+            </div>
+            <div class="scale-segment" style="background-color: #ffff00;">
+                <div class="scale-text">50-100<br>Orta</div>
+            </div>
+            <div class="scale-segment" style="background-color: #ff7e00;">
+                <div class="scale-text">100-150<br>Hassas</div>
+            </div>
+            <div class="scale-segment" style="background-color: #ff0000;">
+                <div class="scale-text">150-200<br>Sağlıksız</div>
+            </div>
+            <div class="scale-segment" style="background-color: #8f3f97;">
+                <div class="scale-text">200-300<br>Kötü</div>
+            </div>
+            <div class="scale-segment" style="background-color: #7e0023;">
+                <div class="scale-text">300-500<br>Tehlikeli</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -288,10 +354,20 @@
         // Verileri çekme ve işaretçileri ekleme
         async function loadAirQualityData() {
             try {
+                // Önceki verileri temizle
+                if (allMarkers) {
+                    allMarkers.forEach(marker => map.removeLayer(marker));
+                }
+                allMarkers = [];  // Array'i temizle
+                cityData = {};    // Objeyi temizle
+                
                 const response = await fetch('/api/AirQuality');
                 const data = await response.json();
                 
+                console.log('All city data:', data); // Tüm verileri göster
+                
                 data.forEach(city => {
+                    console.log(`${city.city} temperature:`, city.temperature); // Her şehrin sıcaklığını göster
                     cityData[city.city] = city;
                     
                     const pinIcon = L.divIcon({
@@ -306,7 +382,6 @@
                         icon: pinIcon
                     });
                     
-                    // Marker'a AQI değerini ekle
                     marker.aqiValue = city.aqi;
 
                     const popupContent = `
@@ -320,9 +395,7 @@
                     marker.bindPopup(popupContent);
                     marker.addTo(map);
                     
-                    // Marker'ı array'e ekle
                     allMarkers.push(marker);
-                    console.log(allMarkers,"1")
                 });
             } catch (error) {
                 console.error('Veri yüklenirken hata oluştu:', error);
@@ -332,11 +405,23 @@
         // Detay butonu için fonksiyon (şimdilik sadece konsola yazdıracak)
         function showDetails(cityName) {
             const city = cityData[cityName];
-            console.log(city)
             if (!city) return;
+
+            console.log('City data:', city); // Debug için şehir verisini göster
 
             document.getElementById('modalCityName').textContent = cityName.toUpperCase();
             document.getElementById('modalAqi').textContent = city.aqi;
+            
+            // Sıcaklık gösterme mantığını düzelt
+            const tempValue = city.temperature;
+            console.log('Temperature value:', tempValue); // Debug için sıcaklık değerini göster
+            
+            if (tempValue === 0) {
+                document.getElementById('modalTemp').textContent = 'Veri yok';
+            } else {
+                document.getElementById('modalTemp').textContent = `${tempValue}°C`;
+            }
+            
             document.getElementById('modalPollutant').textContent = city.dominantPollutant;
             document.getElementById('modalTime').textContent = new Date(city.timestamp).toLocaleString('tr-TR');
             
@@ -466,6 +551,13 @@
         // Tüm marker'ları saklayacak array
         let allMarkers = [];
 
+        // Çizim başladığında çalışacak fonksiyon
+        map.on('draw:drawstart', function() {
+            // Sadece önceki çizimleri ve sonucu temizle
+            drawnItems.clearLayers();
+            document.getElementById('areaInfo').style.display = 'none';
+        });
+
         // Çizim tamamlandığında çalışacak fonksiyon
         map.on('draw:created', function(e) {
             // Önceki çizimleri temizle
@@ -473,14 +565,20 @@
             
             var layer = e.layer;
             drawnItems.addLayer(layer);
-            console.log(allMarkers)
             
             // Seçili alan içindeki marker'ları bul
-            let markersInArea = allMarkers.filter(marker => {
-                return layer.getBounds().contains(marker.getLatLng());
+            let markersInArea = [];
+            let citiesFound = new Set(); // Tekrarlanan şehirleri önlemek için Set kullan
+            
+            allMarkers.forEach(marker => {
+                if (layer.getBounds().contains(marker.getLatLng())) {
+                    const cityName = marker.getPopup().getContent().match(/<h4>(.*?)<\/h4>/)[1];
+                    if (!citiesFound.has(cityName)) {
+                        citiesFound.add(cityName);
+                        markersInArea.push(marker);
+                    }
+                }
             });
-
-            console.log(markersInArea)
             
             // AQI ortalamasını hesapla
             if (markersInArea.length > 0) {
@@ -501,8 +599,10 @@
             document.getElementById('areaInfo').style.display = 'none';
         });
 
-        // Verileri yükle (sadece bir kere)
-        loadAirQualityData();
+        // Sayfa yüklendiğinde verileri yükle
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAirQualityData();
+        });
     </script>
 </body>
 </html> 
