@@ -169,11 +169,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\AirQualityMonitor.csproj",
+      "projectUniqueName": "C:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\AirQualityMonitor.csproj",
       "projectName": "AirQualityMonitor",
-      "projectPath": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\AirQualityMonitor.csproj",
+      "projectPath": "C:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\AirQualityMonitor.csproj",
       "packagesPath": "C:\\Users\\YUSUF\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\obj\\",
+      "outputPath": "C:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -254,7 +254,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.404\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.406\\RuntimeIdentifierGraph.json"
       }
     }
   },
@@ -263,7 +263,7 @@
       "code": "NU1903",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "'Npgsql' 7.0.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-x9vc-6hfv-hg8c güvenlik açığı var",
+      "message": "Package 'Npgsql' 7.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-x9vc-6hfv-hg8c",
       "libraryId": "Npgsql",
       "targetGraphs": [
         "net6.0"

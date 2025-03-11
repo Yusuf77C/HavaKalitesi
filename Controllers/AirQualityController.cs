@@ -47,6 +47,47 @@ public class AirQualityController : ControllerBase
         
         return Ok(airQualityData);
     }
+
+    [HttpGet("weekly/{city}")]
+    public async Task<IActionResult> GetWeeklyData(string city)
+    {
+        var weeklyData = new List<WeeklyAQIData>();
+        
+        using var conn = new NpgsqlConnection(_connString);
+        await conn.OpenAsync();
+        
+        // Son 7 günün verilerini çek ve günlük ortalama hesapla
+        using var cmd = new NpgsqlCommand(@"
+            WITH daily_avg AS (
+                SELECT 
+                    DATE(timestamp) as date,
+                    AVG(aqi) as avg_aqi
+                FROM air_quality_data
+                WHERE city = @city
+                    AND timestamp >= NOW() - INTERVAL '7 days'
+                GROUP BY DATE(timestamp)
+                ORDER BY DATE(timestamp)
+            )
+            SELECT 
+                date,
+                ROUND(avg_aqi::numeric, 0) as aqi
+            FROM daily_avg", 
+            conn);
+        
+        cmd.Parameters.AddWithValue("city", city);
+        
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            weeklyData.Add(new WeeklyAQIData
+            {
+                Date = reader.GetDateTime(0),
+                AQI = reader.GetInt32(1)
+            });
+        }
+        
+        return Ok(weeklyData);
+    }
 }
 
 public class AirQualityData
@@ -58,4 +99,10 @@ public class AirQualityData
     public double Longitude { get; set; }
     public float Temperature { get; set; }
     public DateTime Timestamp { get; set; }
+}
+
+public class WeeklyAQIData
+{
+    public DateTime Date { get; set; }
+    public int AQI { get; set; }
 } 

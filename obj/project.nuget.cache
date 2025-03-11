@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "nEwKDfghoQw=",
+  "dgSpecHash": "FtwjRpP3Uqo=",
   "success": true,
-  "projectFilePath": "c:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\AirQualityMonitor.csproj",
+  "projectFilePath": "C:\\Users\\YUSUF\\OneDrive\\Desktop\\HavaKalitesi\\AirQualityMonitor.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\YUSUF\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\6.0.0\\microsoft.extensions.logging.abstractions.6.0.0.nupkg.sha512",
     "C:\\Users\\YUSUF\\.nuget\\packages\\npgsql\\7.0.0\\npgsql.7.0.0.nupkg.sha512",
@@ -17,7 +17,7 @@
       "code": "NU1903",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "'Npgsql' 7.0.0 paketinde önem derecesi yüksek olan bilinen bir https://github.com/advisories/GHSA-x9vc-6hfv-hg8c güvenlik açığı var",
+      "message": "Package 'Npgsql' 7.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-x9vc-6hfv-hg8c",
       "libraryId": "Npgsql",
       "targetGraphs": [
         "net6.0"

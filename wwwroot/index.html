@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Leaflet.draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         #map {
@@ -84,7 +85,7 @@
             background-color: white;
             padding: 25px;
             border-radius: 10px;
-            min-width: 300px;
+            min-width: 500px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
@@ -245,6 +246,63 @@
             line-height: 1.2;
             color: white;
         }
+
+        .aqi-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .aqi-box {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 150px;
+        }
+
+        .aqi-number {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .aqi-status {
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+            cursor: help;
+        }
+
+        .aqi-status:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: normal;
+            white-space: normal;
+            width: 200px;
+            text-align: center;
+            margin-top: 10px;
+            z-index: 1000;
+        }
+
+        .details-container {
+            flex: 1;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            height: 200px;
+        }
     </style>
 </head>
 <body>
@@ -270,21 +328,28 @@
                 <h2 id="modalCityName"></h2>
             </div>
             <div class="modal-body">
-                <div class="detail-item">
-                    <div class="detail-label">AQI Değeri</div>
-                    <div id="modalAqi" class="detail-value"></div>
+                <div class="aqi-container">
+                    <div id="modalAqiBox" class="aqi-box">
+                        <div class="aqi-number" id="modalAqiNumber"></div>
+                        <div class="aqi-status" id="modalAqiStatus"></div>
+                    </div>
+                    <div class="details-container">
+                        <div class="detail-item">
+                            <div class="detail-label">Sıcaklık</div>
+                            <div id="modalTemp" class="detail-value"></div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Ana Kirletici</div>
+                            <div id="modalPollutant" class="detail-value"></div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Ölçüm Zamanı</div>
+                            <div id="modalTime" class="detail-value"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="detail-item">
-                    <div class="detail-label">Sıcaklık</div>
-                    <div id="modalTemp" class="detail-value"></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Ana Kirletici</div>
-                    <div id="modalPollutant" class="detail-value"></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Ölçüm Zamanı</div>
-                    <div id="modalTime" class="detail-value"></div>
+                <div class="chart-container">
+                    <canvas id="aqiChart"></canvas>
                 </div>
             </div>
             <button class="close-button" onclick="closeModal()">Kapat</button>
@@ -402,20 +467,58 @@
             }
         }
 
-        // Detay butonu için fonksiyon (şimdilik sadece konsola yazdıracak)
-        function showDetails(cityName) {
+        let aqiChart = null; // Global değişken olarak tanımla
+
+        async function showDetails(cityName) {
             const city = cityData[cityName];
             if (!city) return;
 
-            console.log('City data:', city); // Debug için şehir verisini göster
-
             document.getElementById('modalCityName').textContent = cityName.toUpperCase();
-            document.getElementById('modalAqi').textContent = city.aqi;
             
-            // Sıcaklık gösterme mantığını düzelt
+            // AQI değeri ve durumu
+            let aqiStatus = '';
+            let boxColor = '';
+            let tooltip = '';
+            
+            if (city.aqi <= 50) {
+                aqiStatus = 'İyi';
+                boxColor = '#00e400';
+                tooltip = 'Hava kalitesi memnun edici ve hava kalitesi az riskli veya hiç risk teşkil etmiyor';
+            } else if (city.aqi <= 100) {
+                aqiStatus = 'Orta';
+                boxColor = '#ffff00';
+                tooltip = 'Hava kalitesi uygun fakat alışılmadık şekilde hava kirliliğine hassas olan insanlar için orta düzeyde sağlık endişesi';
+            } else if (city.aqi <= 150) {
+                aqiStatus = 'Hassas';
+                boxColor = '#ff7e00';
+                tooltip = 'Hassas guruplar için sağlık etkileri oluşturabilir';
+            } else if (city.aqi <= 200) {
+                aqiStatus = 'Sağlıksız';
+                boxColor = '#ff0000';
+                tooltip = 'Herkes sağlık etkileri yaşayabilir, hassas guruplar için ciddi sağlık etkileri söz konusu olabilir';
+            } else if (city.aqi <= 300) {
+                aqiStatus = 'Kötü';
+                boxColor = '#8f3f97';
+                tooltip = 'Sağlık açısından acil durum oluşturabilir. Nüfusun tamamının etkilenme olasılığı yüksektir';
+            } else {
+                aqiStatus = 'Tehlikeli';
+                boxColor = '#7e0023';
+                tooltip = 'Sağlık alarmı, herkes daha ciddi sağlık etkileri ile karşılaşabilir';
+            }
+            
+            const aqiBox = document.getElementById('modalAqiBox');
+            aqiBox.style.backgroundColor = boxColor;
+            aqiBox.style.color = '#fff';
+            
+            document.getElementById('modalAqiNumber').textContent = city.aqi;
+            
+            // Status elementini güncelle ve tooltip ekle
+            const statusElement = document.getElementById('modalAqiStatus');
+            statusElement.textContent = aqiStatus;
+            statusElement.setAttribute('data-tooltip', tooltip);
+            
+            // Diğer detaylar...
             const tempValue = city.temperature;
-            console.log('Temperature value:', tempValue); // Debug için sıcaklık değerini göster
-            
             if (tempValue === 0) {
                 document.getElementById('modalTemp').textContent = 'Veri yok';
             } else {
@@ -425,6 +528,73 @@
             document.getElementById('modalPollutant').textContent = city.dominantPollutant;
             document.getElementById('modalTime').textContent = new Date(city.timestamp).toLocaleString('tr-TR');
             
+            // Haftalık verileri çek ve grafiği çiz
+            try {
+                const response = await fetch(`/api/AirQuality/weekly/${cityName}`);
+                const weeklyData = await response.json();
+
+                // Eski grafiği temizle
+                if (aqiChart) {
+                    aqiChart.destroy();
+                }
+
+                // Verileri hazırla
+                const dates = weeklyData.map(d => new Date(d.date).toLocaleDateString('tr-TR'));
+                const aqiValues = weeklyData.map(d => d.aqi);
+
+                // Grafiği çiz
+                const ctx = document.getElementById('aqiChart').getContext('2d');
+                aqiChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Günlük AQI Ortalaması',
+                            data: aqiValues,
+                            backgroundColor: aqiValues.map(aqi => {
+                                if (aqi <= 50) return '#00e400';
+                                if (aqi <= 100) return '#ffff00';
+                                if (aqi <= 150) return '#ff7e00';
+                                if (aqi <= 200) return '#ff0000';
+                                if (aqi <= 300) return '#8f3f97';
+                                return '#7e0023';
+                            }),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'AQI Değeri'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Tarih'
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Son 7 Günün AQI Değerleri',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Haftalık veri yüklenirken hata oluştu:', error);
+            }
+
             document.getElementById('detailModal').style.display = 'block';
         }
 
